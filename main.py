@@ -15,7 +15,12 @@ client = OpenAI(api_key=OPENAI_API_KEY)
 
 # FastAPI app
 app = FastAPI()
+from fastapi.responses import RedirectResponse
 
+@app.get("/")
+async def root():
+    return RedirectResponse(url="/docs")
+    
 @app.post("/api/ekg/interpret")
 async def interpret_ekg(
     image: UploadFile = File(...),
@@ -83,3 +88,4 @@ async def interpret_ekg(
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=3000)
+
