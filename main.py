@@ -1,12 +1,12 @@
 import os
 import base64
 from fastapi import FastAPI, File, UploadFile, Form
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, HTMLResponse
 from dotenv import load_dotenv
 import uvicorn
 from openai import OpenAI
 
-# Load environment variables from .env
+# Load environment variables
 load_dotenv()
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
@@ -14,10 +14,11 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 client = OpenAI(api_key=OPENAI_API_KEY)
 
 # FastAPI app
-app = FastAPI()
-from fastapi.responses import HTMLResponse
-from fastapi import Request
+app = FastAPI(title="EKG Interpreter", version="1.0")
 
+# -------------------------------------------------------------------
+# Home page: Upload form
+# -------------------------------------------------------------------
 @app.get("/", response_class=HTMLResponse)
 async def home():
     return """
@@ -26,27 +27,32 @@ async def home():
             <title>EKG Interpreter</title>
         </head>
         <body>
-            <h2>Upload an EKG Image</h2>
+            <h2>Upload an EKG Image for Interpretation</h2>
             <form action="/api/ekg/interpret" enctype="multipart/form-data" method="post">
-                <label for="age">Age:</label><br>
+                <label>Age:</label><br>
                 <input type="text" name="age"><br>
-                <label for="sex">Sex:</label><br>
+                <label>Sex:</label><br>
                 <input type="text" name="sex"><br>
-                <label for="symptoms">Symptoms:</label><br>
+                <label>Symptoms:</label><br>
                 <input type="text" name="symptoms"><br>
-                <label for="history">History:</label><br>
+                <label>History:</label><br>
                 <input type="text" name="history"><br>
-                <label for="meds">Medications:</label><br>
+                <label>Medications:</label><br>
                 <input type="text" name="meds"><br>
-                <label for="vitals">Vitals:</label><br>
+                <label>Vitals:</label><br>
                 <input type="text" name="vitals"><br><br>
+                <label>Upload EKG Image:</label><br>
                 <input type="file" name="image"><br><br>
                 <input type="submit" value="Interpret EKG">
             </form>
+            <p>Or visit <a href="/docs">API Docs</a></p>
         </body>
     </html>
     """
-    
+
+# -------------------------------------------------------------------
+# API Endpoint: JSON response (works for API and the form above)
+# -------------------------------------------------------------------
 @app.post("/api/ekg/interpret")
 async def interpret_ekg(
     image: UploadFile = File(...),
@@ -83,7 +89,7 @@ async def interpret_ekg(
 
     # Call OpenAI Vision model
     response = client.chat.completions.create(
-        model="gpt-4o-mini",  # fast + multimodal
+        model="gpt-4o-mini",  # multimodal, fast
         messages=[
             {"role": "system", "content": "You are an expert cardiologist interpreting EKGs."},
             {
@@ -99,23 +105,27 @@ async def interpret_ekg(
 
     interpretation = response.choices[0].message.content
 
-    return JSONResponse({
-        "overall_interpretation": interpretation,
-        "context_received": {
-            "age": age,
-            "sex": sex,
-            "symptoms": symptoms,
-            "history": history,
-            "meds": meds,
-            "vitals": vitals,
-        }
-    })
+    # Return both JSON (for API clients) and HTML (for form users)
+    return HTMLResponse(f"""
+    <html>
+        <body>
+            <h2>EKG Interpretation Result</h2>
+            <p><strong>Age:</strong> {age}</p>
+            <p><strong>Sex:</strong> {sex}</p>
+            <p><strong>Symptoms:</strong> {symptoms}</p>
+            <p><strong>History:</strong> {history}</p>
+            <p><strong>Medications:</strong> {meds}</p>
+            <p><strong>Vitals:</strong> {vitals}</p>
+            <h3>Interpretation:</h3>
+            <p>{interpretation}</p>
+            <p><a href="/">⬅️ Upload Another</a></p>
+        </body>
+    </html>
+    """)
 
 
+# -------------------------------------------------------------------
+# Run locally
+# -------------------------------------------------------------------
 if __name__ == "__main__":
-    import os
-    port = int(os.environ.get("PORT", 10000))  # Render injects $PORT
-    uvicorn.run(app, host="0.0.0.0", port=port)
-
-
-
+    uvicorn.run(app, host="0.0.0.0", port=3000)
