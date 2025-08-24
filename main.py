@@ -103,21 +103,24 @@ async def interpret_ekg(
         max_tokens=500,
     )
 
-    interpretation = response.choices[0].message.content
+ interpretation = response.choices[0].message.content
+
+    # Clean up formatting: remove colons, replace semicolons with periods
+    cleaned_interpretation = interpretation.replace(":", "").replace(";", ".")
 
     # Return both JSON (for API clients) and HTML (for form users)
     return HTMLResponse(f"""
     <html>
         <body>
             <h2>EKG Interpretation Result</h2>
-            <p><strong>Age:</strong> {age}</p>
-            <p><strong>Sex:</strong> {sex}</p>
-            <p><strong>Symptoms:</strong> {symptoms}</p>
-            <p><strong>History:</strong> {history}</p>
-            <p><strong>Medications:</strong> {meds}</p>
-            <p><strong>Vitals:</strong> {vitals}</p>
+            <p><strong>Age</strong> {age}</p>
+            <p><strong>Sex</strong> {sex}</p>
+            <p><strong>Symptoms</strong> {symptoms}</p>
+            <p><strong>History</strong> {history}</p>
+            <p><strong>Medications</strong> {meds}</p>
+            <p><strong>Vitals</strong> {vitals}</p>
             <h3>Interpretation:</h3>
-            <p>{interpretation}</p>
+            <p>{cleaned_interpretation}</p>
             <p><a href="/">⬅️ Upload Another</a></p>
         </body>
     </html>
@@ -129,3 +132,4 @@ async def interpret_ekg(
 # -------------------------------------------------------------------
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=3000)
+
