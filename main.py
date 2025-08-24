@@ -15,11 +15,37 @@ client = OpenAI(api_key=OPENAI_API_KEY)
 
 # FastAPI app
 app = FastAPI()
-from fastapi.responses import RedirectResponse
+from fastapi.responses import HTMLResponse
+from fastapi import Request
 
-@app.get("/")
-async def root():
-    return RedirectResponse(url="/docs")
+@app.get("/", response_class=HTMLResponse)
+async def home():
+    return """
+    <html>
+        <head>
+            <title>EKG Interpreter</title>
+        </head>
+        <body>
+            <h2>Upload an EKG Image</h2>
+            <form action="/api/ekg/interpret" enctype="multipart/form-data" method="post">
+                <label for="age">Age:</label><br>
+                <input type="text" name="age"><br>
+                <label for="sex">Sex:</label><br>
+                <input type="text" name="sex"><br>
+                <label for="symptoms">Symptoms:</label><br>
+                <input type="text" name="symptoms"><br>
+                <label for="history">History:</label><br>
+                <input type="text" name="history"><br>
+                <label for="meds">Medications:</label><br>
+                <input type="text" name="meds"><br>
+                <label for="vitals">Vitals:</label><br>
+                <input type="text" name="vitals"><br><br>
+                <input type="file" name="image"><br><br>
+                <input type="submit" value="Interpret EKG">
+            </form>
+        </body>
+    </html>
+    """
     
 @app.post("/api/ekg/interpret")
 async def interpret_ekg(
@@ -90,5 +116,6 @@ if __name__ == "__main__":
     import os
     port = int(os.environ.get("PORT", 10000))  # Render injects $PORT
     uvicorn.run(app, host="0.0.0.0", port=port)
+
 
 
